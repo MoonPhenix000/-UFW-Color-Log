@@ -1,83 +1,116 @@
 # -UFW-Color-Log
-Monitoramento Colorido e em Tempo Real para o UFW no Debian
-Este script adiciona uma ferramenta prática chamada `ufw-colorlog` ao seu terminal Linux, permitindo monitorar em **tempo real** os eventos do firewall `UFW` com **destaque visual por cores** diretamente dos logs do kernel (`journalctl -k -f`).
+# 🧱 ufw-colorlog
 
----
+> 🔥 Monitoramento em tempo real de logs do UFW com **cores** e **alertas sonoros** — direto no terminal Linux.
 
-## 🎯 Funcionalidades
-
-✅ Log de eventos do UFW em tempo real  
-✅ Destaque em **vermelho** para acessos suspeitos ou bloqueados (`BLOCK`, `DROP`, `DENIED`)  
-✅ Destaque em **azul** para conexões permitidas (`ALLOW`)  
-✅ Destaque em **amarelo** para mensagens gerais com "UFW"  
-✅ Outros eventos em cinza (neutros)  
-✅ Instalação simples com um único script  
-✅ Não requer ferramentas externas (só `awk` e `journalctl`)
-
----
-
-## 📦 Requisitos
-
-- Distribuição baseada em Debian (ex: Debian 12, Ubuntu)
-- `ufw` instalado e ativado
-- Permissão de `sudo`
-- Terminal compatível com **cores ANSI**
+O `ufw-colorlog` é uma ferramenta simples e poderosa para quem deseja acompanhar o que acontece no firewall do sistema (UFW) com clareza, visibilidade e resposta rápida. Ideal para administradores de sistemas, entusiastas de segurança e curiosos que querem ficar de olho na rede!
 
 ---
 
 ## 🚀 Instalação
 
-1. Clone o repositório:
+### 📥 1. Clone o repositório
 
 ```bash
 git clone https://github.com/seu-usuario/ufw-colorlog.git
 cd ufw-colorlog
 
-    Torne o script executável:
+🔐 2. Instale o alerta sonoro (opcional, mas recomendado)
+
+sudo apt install beep
+sudo modprobe pcspkr
+sudo chmod u+s /usr/bin/beep
+
+    💡 Se seu terminal não tiver speaker, você pode depois adaptar o script para usar paplay ou aplay.
+
+⚙️ 3. Execute o instalador para adicionar o comando ufw-colorlog
 
 chmod +x ufw_color_log.sh
-
-    Execute o script:
-
 ./ufw_color_log.sh
 
-    Após a execução, use o comando:
+Esse script adicionará a função ufw-colorlog ao final do seu ~/.bashrc.
+🔄 4. Recarregue o terminal
+
+source ~/.bashrc
+
+📡 5. Rode o monitoramento com:
 
 ufw-colorlog
 
 🖍️ Exemplo de Saída
 
 [! BLOQUEADO] Jul 11 17:32:21 kernel: [UFW BLOCK] IN=eth0 OUT=... SRC=185.12.34.56 DPT=22 ...
-[OK PERMITIDO] Jul 11 17:32:24 kernel: [UFW ALLOW] IN=eth0 OUT=... SRC=192.168.0.100 DPT=443 ...
+[✔ PERMITIDO] Jul 11 17:32:24 kernel: [UFW ALLOW] IN=eth0 OUT=... SRC=192.168.0.100 DPT=443 ...
+[⚠ PORTA SENSÍVEL] Jul 11 17:32:26 kernel: [UFW ALLOW] DPT=445 ...
 [INFO] Jul 11 17:32:30 kernel: [UFW AUDIT] ...
+
+As cores ajudam a identificar imediatamente:
+
+    🔴 Tentativas bloqueadas ou maliciosas
+
+    🔵 Acessos permitidos
+
+    🟣 Portas sensíveis acessadas
+
+    🟡 Outros eventos do UFW
 
 🧠 Como Funciona
 
-O script adiciona uma função ufw-colorlog no seu ~/.bashrc, que executa:
+O script adiciona a seguinte função ao ~/.bashrc:
 
-sudo journalctl -k -f | awk '...'
+ufw-colorlog() {
+  sudo journalctl -k -f | awk '
+  /UFW.*(BLOCK|DENIED|DROP|INVALID)/ {
+    print "\033[1;31m[! BLOQUEADO] " $0 "\033[0m";
+    system("beep -f 1000 -l 150");
+    next;
+  }
+  /UFW.*ALLOW/ {
+    print "\033[1;34m[✔ PERMITIDO] " $0 "\033[0m";
+    next;
+  }
+  /UFW.*DPT=(23|445|3389|1433|21|22)/ {
+    print "\033[1;35m[⚠ PORTA SENSÍVEL] " $0 "\033[0m";
+    system("beep -f 800 -l 200");
+    next;
+  }
+  /UFW/ {
+    print "\033[1;33m[INFO] " $0 "\033[0m";
+    next;
+  }
+  '
+}
 
-Esse comando lê os logs do kernel (-k), filtra eventos relacionados ao UFW, e colore dinamicamente com base no conteúdo do log.
+Essa função:
+
+    Usa journalctl -k -f para acompanhar os logs do kernel
+
+    Filtra linhas que contenham UFW
+
+    Aplica cor ANSI e alerta sonoro para eventos críticos
+
 🛠️ Personalização
 
-Você pode editar a função ufw-colorlog no seu .bashrc e ajustar:
+Você pode editar a função ufw-colorlog no seu ~/.bashrc e ajustar:
 
-    Palavras-chave de busca
+    ⚙️ Palavras-chave para monitorar (ex: DPT=, SRC=, SYN)
 
-    Códigos de cor ANSI (\033[1;31m = vermelho, etc.)
+    🎨 Códigos de cor ANSI (vermelho, azul, roxo, amarelo...)
 
-    Tipos de eventos a destacar
+    🔔 Sons diferentes por tipo de evento
+
+    ❌ Ignorar eventos internos de confiança
 
 ❗ Segurança
 
-Este script não altera nenhuma regra de firewall — ele apenas monitora os logs gerados pelo UFW.
-Ideal para administradores, pentesters e entusiastas que queiram visualizar a atividade da rede de forma clara e rápida.
-📄 Licença
+⚠️ Este script é apenas um visualizador de logs. Ele não modifica regras de firewall.
 
-Este projeto está licenciado sob a MIT License.
 💬 Contribuições
 
-Contribuições são bem-vindas! Sinta-se livre para abrir issues, pull requests ou sugerir melhorias.
+Contribuições são bem-vindas!
+Sinta-se à vontade para abrir issues, enviar PRs ou sugerir melhorias no script ou na documentação.
+
+
 ✨ Autor
 
 Desenvolvido por Luiza-Botelho
